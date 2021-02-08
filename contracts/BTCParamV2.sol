@@ -7,20 +7,32 @@ import "./uniswapv2/UniswapV2OracleLibrary.sol";
 contract BTCParamV2 {
     using SafeMath for uint256;
 
+    //是否初始化
     bool internal initialized;
+    //合约拥有者
     address public owner;
+    //参数设置者
     address public paramSetter;
 
+    //btc区块奖励（wei为单位）
     uint256 public btcBlockRewardInWei;
+    //全网难度
     uint256 public btcNetDiff;
+    //btc每秒手续费收益（wei为单位）
     uint256 public btcTxFeeRewardPerTPerSecInWei;
 
+    //uniswap BTC——USDT的地址
     address public uniPairAddress;
+    //使用uniswap输出的价格1还是价格0
     bool public usePrice0;
+    //上一次价格更新的时间
     uint32 public lastPriceUpdateTime;
+    //最后累计价格
     uint256 public lastCumulativePrice;
+    //最后平均价格
     uint256 public lastAveragePrice;
 
+    //需要监听这些参数的地址
     address[] public paramListeners;
 
     function initialize(address newOwner, address _paramSetter, uint256 _btcNetDiff, uint256 _btcBlockRewardInWei, address _uniPairAddress, bool _usePrice0) public {
@@ -53,16 +65,19 @@ contract BTCParamV2 {
         paramSetter = _paramSetter;
     }
 
+    //设置BTC的区块难度
     function setBtcNetDiff(uint256 _btcNetDiff) external onlyParamSetter {
         btcNetDiff = _btcNetDiff;
         notifyListeners();
     }
 
+    //设置BTC的区块奖励
     function setBtcBlockReward(uint256 _btcBlockRewardInWei) external onlyParamSetter {
         btcBlockRewardInWei = _btcBlockRewardInWei;
         notifyListeners();
     }
 
+    //更新BTC的价格
     function updateBtcPrice() external onlyParamSetter {
         _updateBtcPrice();
         notifyListeners();
@@ -81,11 +96,13 @@ contract BTCParamV2 {
         }
     }
 
+    //设置手续费的收益
     function setBtcTxFeeRewardRate(uint256 _btcTxFeeRewardPerTPerSecInWei) external onlyParamSetter {
         btcTxFeeRewardPerTPerSecInWei = _btcTxFeeRewardPerTPerSecInWei;
         notifyListeners();
     }
 
+    //设置手续费的收益并更新BTC的价格
     function setBtcTxFeeRewardRateAndUpdateBtcPrice(uint256 _btcTxFeeRewardPerTPerSecInWei) external onlyParamSetter{
         btcTxFeeRewardPerTPerSecInWei = _btcTxFeeRewardPerTPerSecInWei;
         _updateBtcPrice();
@@ -120,13 +137,17 @@ contract BTCParamV2 {
         }
     }
 
+    //BTC收入每T每秒（单位为WEI）
     function btcIncomePerTPerSecInWei() external view returns(uint256){
+        //1T的hash算力
         uint256 oneTHash = 10 ** 12;
+        //基础难度
         uint256 baseDiff = 2 ** 32;
         uint256 blockRewardRate = oneTHash.mul(btcBlockRewardInWei).div(baseDiff).div(btcNetDiff);
         return blockRewardRate.add(btcTxFeeRewardPerTPerSecInWei);
     }
 
+    //获得BTC价格
     function btcPrice() external view returns (uint256) {
         return lastAveragePrice.mul(100).div(2**112);
     }
